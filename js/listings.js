@@ -117,27 +117,65 @@ const imagePreviewContainer = document.getElementById('imagePreviewContainer');
     }
 
   
-    function createListingRow(listing, listingId, location, category) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${listing.name}</td>
-            <td>${category}</td>
-            <td>${location}</td>
-            <td>
-                <button class="btn btn-sm btn-primary edit-btn" data-id="${listingId}" data-location="${location}" data-category="${category}">Edit</button>
-                <button class="btn btn-sm btn-danger delete-btn" data-id="${listingId}" data-location="${location}" data-category="${category}">Delete</button>
-            </td>
-        `;
+   
+   function createListingRow(listing, listingId, location, category) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>${listing.name}</td>
+        <td>${category}</td>
+        <td>${location}</td>
+        <td>
+            <div class="form-check form-switch">
+                <input class="form-check-input approve-switch" type="checkbox" id="approve-${listingId}" ${listing.approved ? 'checked' : ''}>
+                <label class="form-check-label" for="approve-${listingId}">${listing.approved ? 'Approved' : 'Pending'}</label>
+            </div>
+        </td>
+        <td>
+            <button class="btn btn-sm btn-primary edit-btn" data-id="${listingId}" data-location="${location}" data-category="${category}">Edit</button>
+            <button class="btn btn-sm btn-danger delete-btn" data-id="${listingId}" data-location="${location}" data-category="${category}">Delete</button>
+        </td>
+    `;
 
-        row.querySelector('.edit-btn').addEventListener('click', function() {
-            editListing(listingId, location, category);
+    row.querySelector('.edit-btn').addEventListener('click', function() {
+        editListing(listingId, location, category);
+    });
+
+    row.querySelector('.delete-btn').addEventListener('click', function() {
+        deleteListing(listingId, location, category);
+    });
+
+    row.querySelector('.approve-switch').addEventListener('change', function() {
+        toggleApproval(listingId, location, category, this.checked);
+    });
+
+    return row;
+}
+
+   
+
+function toggleApproval(listingId, location, category, isApproved) {
+    listingsRef.child(location).child(category).child(listingId).update({ approved: isApproved })
+        .then(() => {
+            showNotification(`Listing ${isApproved ? 'approved' : 'unapproved'} successfully`, 'success');
+            loadListings();
+        })
+        .catch((error) => {
+            showNotification('Error updating approval status: ' + error.message, 'danger');
         });
+}
 
-        row.querySelector('.delete-btn').addEventListener('click', function() {
-            deleteListing(listingId, location, category);
-        });
 
-        return row;
+
+   
+   function approveListing(listingId, location, category) {
+        listingsRef.child(location).child(category).child(listingId).update({ approved: true })
+            .then(() => {
+                showNotification('Listing approved successfully', 'success');
+                loadListings();
+            })
+            .catch((error) => {
+                showNotification('Error approving listing: ' + error.message, 'danger');
+            });
     }
 
  
@@ -211,9 +249,12 @@ const imagePreviewContainer = document.getElementById('imagePreviewContainer');
         });
 }
 
+
 function addNewListing(listingData) {
     const newListingRef = listingsRef.child(listingData.location).child(listingData.category).push();
     const listingId = newListingRef.key;
+
+    listingData.approved = false; // Set initial approval status
 
     uploadImages(listingId, currentImages)
         .then((imageUrls) => {
@@ -230,6 +271,8 @@ function addNewListing(listingData) {
             showNotification('Error adding listing: ' + error.message, 'danger');
         });
 }
+
+
 
     function deleteListing(listingId, location, category) {
         if (confirm('Are you sure you want to delete this listing?')) {
