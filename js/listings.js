@@ -13,6 +13,14 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
+// Initialize OneSignal
+window.OneSignal = window.OneSignal || [];
+OneSignal.push(function() {
+    OneSignal.init({
+        appId: "0152b859-235a-4da6-b7a0-23a0283a4bb6",
+    });
+});
+
 const db = firebase.database();
 const listingsRef = db.ref('listings');
 const categoriesRef = db.ref('categories');
@@ -153,19 +161,54 @@ const imagePreviewContainer = document.getElementById('imagePreviewContainer');
 
    
 
+
 function toggleApproval(listingId, location, category, isApproved) {
-    listingsRef.child(location).child(category).child(listingId).update({ approved: isApproved })
-        .then(() => {
-            showNotification(`Listing ${isApproved ? 'approved' : 'unapproved'} successfully`, 'success');
-            loadListings();
-        })
-        .catch((error) => {
-            showNotification('Error updating approval status: ' + error.message, 'danger');
-        });
+    listingsRef.child(location).child(category).child(listingId).once('value', (snapshot) => {
+        const listing = snapshot.val();
+        const wasApproved = listing.approved;
+
+        listingsRef.child(location).child(category).child(listingId).update({ approved: isApproved })
+            .then(() => {
+                showNotification(`Listing ${isApproved ? 'approved' : 'unapproved'} successfully`, 'success');
+                loadListings();
+
+                // If the listing was not approved before and is now approved, send a notification
+                if (!wasApproved && isApproved) {
+                    sendApprovalNotification(listing.userId, listing.name);
+                }
+            })
+            .catch((error) => {
+                showNotification('Error updating approval status: ' + error.message, 'danger');
+            });
+    });
 }
 
+function sendApprovalNotification(userId, listingName) {
+    // Fetch the user's device ID
+    db.ref('users').child(userId).once('value', (snapshot) => {
+        const user = snapshot.val();
+        if (user && user.deviceID) {
+            // Send OneSignal notification
+            const notificationData = {
+                app_id: "0152b859-235a-4da6-b7a0-23a0283a4bb6",
+                include_player_ids: [user.deviceID],
+                contents: {"en": `Your listing "${listingName}" has been approved!`}
+            };
 
-
+            fetch('https://onesignal.com/api/v1/notifications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic OTZkNGE4MTQtYTU1Ny00ZDkzLTkwZDAtZTVlMmU5MTkzMjE1'
+                },
+                body: JSON.stringify(notificationData)
+            })
+            .then(response => response.json())
+            .then(data => console.log('OneSignal notification sent:', data))
+            .catch(error => console.error('Error sending OneSignal notification:', error));
+        }
+    });
+}
    
    function approveListing(listingId, location, category) {
         listingsRef.child(location).child(category).child(listingId).update({ approved: true })
