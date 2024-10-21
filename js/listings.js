@@ -199,25 +199,25 @@ function sendApprovalNotification(userId, listingName) {
             };
 
             fetch('https://onesignal.com/api/v1/notifications', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic YOUR_API_KEY'
-    },
-    body: JSON.stringify(notificationData)
-})
-.then(response => {
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-})
-.then(data => console.log('OneSignal notification sent:', data))
-.catch(error => console.error('Error sending OneSignal notification:', error));
-
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic OTZkNGE4MTQtYTU1Ny00ZDkzLTkwZDAtZTVlMmU5MTkzMjE1'
+                },
+                body: JSON.stringify(notificationData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => console.log('OneSignal notification sent:', data))
+            .catch(error => console.error('Error sending OneSignal notification:', error));
         }
     });
 }
+
    
    function approveListing(listingId, location, category) {
         listingsRef.child(location).child(category).child(listingId).update({ approved: true })
