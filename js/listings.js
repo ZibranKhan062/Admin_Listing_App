@@ -162,12 +162,15 @@ const imagePreviewContainer = document.getElementById('imagePreviewContainer');
    
 
 
+
 function toggleApproval(listingId, location, category, isApproved) {
-    listingsRef.child(location).child(category).child(listingId).once('value', (snapshot) => {
+    const listingRef = listingsRef.child(location).child(category).child(listingId);
+    
+    listingRef.once('value', (snapshot) => {
         const listing = snapshot.val();
         const wasApproved = listing.approved;
 
-        listingsRef.child(location).child(category).child(listingId).update({ approved: isApproved })
+        listingRef.update({ approved: isApproved })
             .then(() => {
                 showNotification(`Listing ${isApproved ? 'approved' : 'unapproved'} successfully`, 'success');
                 loadListings();
