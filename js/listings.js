@@ -159,9 +159,6 @@ const imagePreviewContainer = document.getElementById('imagePreviewContainer');
     return row;
 }
 
-   
-
-
 
 function toggleApproval(listingId, location, category, isApproved) {
     const listingRef = listingsRef.child(location).child(category).child(listingId);
@@ -177,7 +174,7 @@ function toggleApproval(listingId, location, category, isApproved) {
 
                 // If the listing was not approved before and is now approved, send a notification
                 if (!wasApproved && isApproved) {
-                    sendApprovalNotification(listing.userId, listing.name);
+                    sendApprovalNotification(listing.userId, listingId, listing.name);
                 }
             })
             .catch((error) => {
@@ -186,7 +183,7 @@ function toggleApproval(listingId, location, category, isApproved) {
     });
 }
 
-function sendApprovalNotification(userId, listingName) {
+function sendApprovalNotification(userId, listingId, listingName) {
     // Fetch the user's device ID
     db.ref('users').child(userId).once('value', (snapshot) => {
         const user = snapshot.val();
@@ -212,12 +209,22 @@ function sendApprovalNotification(userId, listingName) {
                 }
                 return response.json();
             })
-            .then(data => console.log('OneSignal notification sent:', data))
+            .then(data => {
+                console.log('OneSignal notification sent:', data);
+                // Add notification to user's notifications in the database
+                const userNotificationsRef = db.ref(`userNotifications/${userId}`);
+                userNotificationsRef.push({
+                    listingId: listingId,
+                    listingName: listingName,
+                    message: `Your listing "${listingName}" has been approved!`,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    read: false
+                });
+            })
             .catch(error => console.error('Error sending OneSignal notification:', error));
         }
     });
 }
-
    
    function approveListing(listingId, location, category) {
         listingsRef.child(location).child(category).child(listingId).update({ approved: true })
