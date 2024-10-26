@@ -183,28 +183,23 @@ function toggleApproval(listingId, location, category, isApproved) {
     });
 }
 
-
-
 function sendApprovalNotification(userId, listingId, listingName) {
     // Fetch the user's device ID
     db.ref('users').child(userId).once('value', (snapshot) => {
         const user = snapshot.val();
         if (user && user.deviceID) {
-            // Prepare notification data
+            // Send OneSignal notification
             const notificationData = {
-                app_id: "0152b859-235a-4da6-b7a0-23a0283a4bb6",  // Ensure this is correct
-                include_player_ids: [user.deviceID],              // Target device
-                contents: { "en": `Your listing "${listingName}" has been approved!` },  // Message content
-                android_channel_id: "listing_approval_channel",   // Custom channel ID
-                android_sound: "notification"                     // Custom sound file name without extension
+                app_id: "0152b859-235a-4da6-b7a0-23a0283a4bb6",
+                include_player_ids: [user.deviceID],
+                contents: {"en": `Your listing "${listingName}" has been approved!`}
             };
 
-            // Send OneSignal notification request
             fetch('https://onesignal.com/api/v1/notifications', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Basic OTZkNGE4MTQtYTU1Ny00ZDkzLTkwZDAtZTVlMmU5MTkzMjE1' // Make sure this is correct
+                    'Authorization': 'Basic OTZkNGE4MTQtYTU1Ny00ZDkzLTkwZDAtZTVlMmU5MTkzMjE1'
                 },
                 body: JSON.stringify(notificationData)
             })
@@ -216,7 +211,7 @@ function sendApprovalNotification(userId, listingId, listingName) {
             })
             .then(data => {
                 console.log('OneSignal notification sent:', data);
-                // Log notification to user's notifications in the database
+                // Add notification to user's notifications in the database
                 const userNotificationsRef = db.ref(`userNotifications/${userId}`);
                 userNotificationsRef.push({
                     listingId: listingId,
@@ -227,15 +222,11 @@ function sendApprovalNotification(userId, listingId, listingName) {
                 });
             })
             .catch(error => console.error('Error sending OneSignal notification:', error));
-        } else {
-            console.error('User or device ID not found.');
         }
     });
 }
-
-
-
-function approveListing(listingId, location, category) {
+   
+   function approveListing(listingId, location, category) {
         listingsRef.child(location).child(category).child(listingId).update({ approved: true })
             .then(() => {
                 showNotification('Listing approved successfully', 'success');
