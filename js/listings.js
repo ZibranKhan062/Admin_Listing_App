@@ -183,16 +183,20 @@ function toggleApproval(listingId, location, category, isApproved) {
     });
 }
 
+
 function sendApprovalNotification(userId, listingId, listingName) {
     // Fetch the user's device ID
     db.ref('users').child(userId).once('value', (snapshot) => {
         const user = snapshot.val();
         if (user && user.deviceID) {
-            // Send OneSignal notification
+            // Send OneSignal notification with custom sound
             const notificationData = {
                 app_id: "0152b859-235a-4da6-b7a0-23a0283a4bb6",
                 include_player_ids: [user.deviceID],
-                contents: {"en": `Your listing "${listingName}" has been approved!`}
+                contents: {"en": `Your listing "${listingName}" has been approved!`},
+                // Add custom sound
+                android_sound: "notification",  // Name of your sound file without extension
+                android_channel_id: "listing_approval_channel" // Your notification channel ID
             };
 
             fetch('https://onesignal.com/api/v1/notifications', {
@@ -225,8 +229,9 @@ function sendApprovalNotification(userId, listingId, listingName) {
         }
     });
 }
-   
-   function approveListing(listingId, location, category) {
+
+
+function approveListing(listingId, location, category) {
         listingsRef.child(location).child(category).child(listingId).update({ approved: true })
             .then(() => {
                 showNotification('Listing approved successfully', 'success');
