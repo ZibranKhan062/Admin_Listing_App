@@ -193,10 +193,21 @@ function sendApprovalNotification(userId, listingId, listingName) {
             const notificationData = {
                 app_id: "0152b859-235a-4da6-b7a0-23a0283a4bb6",
                 include_player_ids: [user.deviceID],
-                contents: {"en": `Your listing "${listingName}" has been approved!`},
-                // Add custom sound
-                android_sound: "notification",  // Name of your sound file without extension
-                android_channel_id: "listing_approval_channel" // Your notification channel ID
+                contents: {
+                    "en": `Your listing "${listingName}" has been approved!`
+                },
+                headings: {
+                    "en": "Listing Approved"
+                },
+                android_channel_id: "listing_approval_channel",
+                android_sound: "notification",
+                priority: 10,
+                small_icon: "ic_notification",
+                large_icon: "",
+                data: {
+                    listingId: listingId,
+                    type: "approval"
+                }
             };
 
             fetch('https://onesignal.com/api/v1/notifications', {
@@ -207,13 +218,11 @@ function sendApprovalNotification(userId, listingId, listingName) {
                 },
                 body: JSON.stringify(notificationData)
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())  // Changed to always parse JSON
             .then(data => {
+                if (data.errors) {  // Check for errors in the response
+                    throw new Error(JSON.stringify(data.errors));
+                }
                 console.log('OneSignal notification sent:', data);
                 // Add notification to user's notifications in the database
                 const userNotificationsRef = db.ref(`userNotifications/${userId}`);
@@ -225,7 +234,11 @@ function sendApprovalNotification(userId, listingId, listingName) {
                     read: false
                 });
             })
-            .catch(error => console.error('Error sending OneSignal notification:', error));
+            .catch(error => {
+                console.error('Error sending OneSignal notification:', error);
+                // You might want to show this error to the admin
+                showNotification('Error sending notification: ' + error.message, 'danger');
+            });
         }
     });
 }
