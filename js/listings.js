@@ -184,30 +184,23 @@ function toggleApproval(listingId, location, category, isApproved) {
 }
 
 
+
 function sendApprovalNotification(userId, listingId, listingName) {
     // Fetch the user's device ID
     db.ref('users').child(userId).once('value', (snapshot) => {
         const user = snapshot.val();
         if (user && user.deviceID) {
-            // Send OneSignal notification with custom sound
+            // Send OneSignal notification with required channel ID
             const notificationData = {
                 app_id: "0152b859-235a-4da6-b7a0-23a0283a4bb6",
                 include_player_ids: [user.deviceID],
-                contents: {
-                    "en": `Your listing "${listingName}" has been approved!`
-                },
-                headings: {
-                    "en": "Listing Approved"
-                },
+                contents: {"en": `Your listing "${listingName}" has been approved!`},
+                headings: {"en": "Listing Approved"},
+                // Required for Android 8.0+
                 android_channel_id: "listing_approval_channel",
                 android_sound: "notification",
                 priority: 10,
-                small_icon: "ic_notification",
-                large_icon: "",
-                data: {
-                    listingId: listingId,
-                    type: "approval"
-                }
+                small_icon: "ic_notification"
             };
 
             fetch('https://onesignal.com/api/v1/notifications', {
@@ -218,9 +211,9 @@ function sendApprovalNotification(userId, listingId, listingName) {
                 },
                 body: JSON.stringify(notificationData)
             })
-            .then(response => response.json())  // Changed to always parse JSON
+            .then(response => response.json())
             .then(data => {
-                if (data.errors) {  // Check for errors in the response
+                if (data.errors) {
                     throw new Error(JSON.stringify(data.errors));
                 }
                 console.log('OneSignal notification sent:', data);
@@ -236,13 +229,12 @@ function sendApprovalNotification(userId, listingId, listingName) {
             })
             .catch(error => {
                 console.error('Error sending OneSignal notification:', error);
-                // You might want to show this error to the admin
+                // Optionally show error to admin
                 showNotification('Error sending notification: ' + error.message, 'danger');
             });
         }
     });
 }
-
 
 function approveListing(listingId, location, category) {
         listingsRef.child(location).child(category).child(listingId).update({ approved: true })
